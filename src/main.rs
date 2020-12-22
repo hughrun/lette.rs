@@ -3,7 +3,7 @@ use colol::{color, close_color};
 use subprocess::{Exec, Popen, PopenConfig};
 use itertools::join;
 use std::ffi::OsString;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -30,12 +30,44 @@ struct Commands {
     test: String
 }
 
-fn config() {
-  // TODO
+fn setup() {
+  fn open_file() {
+    Exec::shell("open ~/.letters.toml").join().unwrap();
+  }
+
+  fn create_file() {
+    println!("Ok!");
+    match fs::File::open("src/base-config.rs") {
+      Ok(mut file) => {
+        let mut content = String::new();
+        // Read all the file content into a variable.
+        file.read_to_string(&mut content).unwrap();
+        // Write out to new config file
+        fs::write("~/.letters.toml", content).unwrap();
+        // open file
+        open_file()
+      }
+        // Error handling.
+        Err(error) => {
+          println!("Error opening file {}: {}", "src/base-config.rs", error);
+      },
+    }
+  }
+
+  let file = fs::OpenOptions::new()
+              .write(true)
+              .create_new(true)
+              .open("~/.letters.toml");
+
+  let _file = match file {
+    Ok(_file) => create_file(),
+    Err(_error) => open_file()
+  };
 }
 
 fn process(config: &Config) {
-  // TODO
+
+// TODO
 }
 
 fn publish(config: &Config) {
@@ -246,13 +278,13 @@ fn main() {
       .arg(Arg::with_name("ACTION")
           .help("Action to perform")
           .required(true)
-          .possible_values(&["config", "process", "publish", "test", "write"])
+          .possible_values(&["setup", "process", "publish", "test", "write"])
           )
       .get_matches();
 
   let action = matches.value_of("ACTION").unwrap();
   match action {
-    "config" => println!("The action is CONFIG!"),
+    "setup" => setup(),
     "process" => println!("The action is PROCESS!"),
     "publish" => publish(&config),
     "test" => test(&config).unwrap(),
