@@ -67,14 +67,24 @@ fn setup() {
 
 fn process(config: &Config) {
 
-// TODO
+  let wd = shellexpand::full(&config.workdir)
+    .expect("Error reading working directory")
+    .to_string();
+
+  Exec::shell(&config.commands.process)
+    .cwd(wd)
+    .join()
+    .unwrap();
+
 }
 
 fn publish(config: &Config) {
   let remote = shellexpand::full(&config.remote_dir).expect("Error reading remote directory").to_string();
   let output = [&shellexpand::full(&config.output).expect("Error reading output directory").to_string(), "/"].concat();
   let concatenated = [&config.commands.publish, " ", &output, " ", &config.server_name, ":", &remote].concat();
-  Exec::shell(&concatenated).join().expect("Something went wrong trying to publish");
+  Exec::shell(&concatenated)
+    .join()
+    .expect("Something went wrong trying to publish");
   println!("Published! 🚀")
 }
 
@@ -285,7 +295,7 @@ fn main() {
   let action = matches.value_of("ACTION").unwrap();
   match action {
     "setup" => setup(),
-    "process" => println!("The action is PROCESS!"),
+    "process" => process(&config),
     "publish" => publish(&config),
     "test" => test(&config).unwrap(),
     "write" => write(&config),
