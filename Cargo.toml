@@ -1,0 +1,19 @@
+[package]
+name = "letters"
+version = "0.1.0"
+authors = ["Hugh Rundle <hugh@hughrundle.net>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "^2.3.3"
+colol = "^0.3"
+console = "^0.13.0"
+itertools = "^0.9.0"
+serde = "^1.0"
+serde_derive = "^1.0"
+shellexpand = "^2.0.0"
+subprocess = "^0.2.6"
+toml = "^0.5.7"
+ureq = { version = "^1.5.4", features = ["json"] }
