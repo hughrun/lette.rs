@@ -4,6 +4,8 @@ A CLI tool to make static site publishing less painful.
 
 Built for MacOS, probably works on n*x. The idea of `lette.rs` is to enable you to set-and-forget your static site setup and commands, and focus on writing great blog posts.
 
+This is basically the cleaner rustified version of [writenow](https://github.com/hughrun/writenow).
+
 ## Installation
 
 ### From source with cargo
