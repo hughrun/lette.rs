@@ -257,6 +257,7 @@ fn write(config: &Config) {
     contents.push_str(&unsplash.0);
     contents.push_str("\n  description: ");
     contents.push_str(&unsplash.1);
+    // TODO: add a DATE
     contents.push_str("\n---\n");
 
     // create filename

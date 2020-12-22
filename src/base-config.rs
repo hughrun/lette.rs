@@ -1,5 +1,5 @@
 input = "" # the input directory for your site i.e. where your markdown files go
-output = "" # the directory for processed files for your site i.e. where your html files go
+output = "" # the directory for processed files for your site i.e. where your html files go. Do NOT include a trailing slash as lette.rs will add this for you
 workdir = "" # the base directory for calling your static site commands. Probably the root directory for eleventy, Hugo etc
 remote_dir = "/var/www/blog" # the directory to rsync files to, on your remote server.
 unsplash_client_id = "" # unsplash client ID string
