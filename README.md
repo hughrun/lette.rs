@@ -13,7 +13,8 @@ cargo build --release
 ```
 ### From executable
 
-TBC
+1. download `letters` from [the latest release](https://github.com/hughrun/lette.rs/releases/latest)
+2. symlink to  your `PATH`: `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`
 
 ## Use
 
@@ -50,3 +51,9 @@ It's always good to do a final check before publishing. Your SSG probably allows
 ### publish
 
 Hello world! Publishing from your local machine to a remote server is a gigantic PITA. With `lette.rs` you never have to remember how to `rsync` or whatever. Just `letters publish` and move on with your life.
+
+## License
+
+`lette.rs` is licensed under GPL 3.0
+
+Please note most important part of this license is Clause 15 which points out this code is not guaranteed to work at all nor non-catastrophically. I don't know what I'm doing. 😀
