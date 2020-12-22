@@ -7,6 +7,7 @@ server_name = "blogserver" # this could also be an IP address
 test_url = "http://localhost:8080" # if your SSG serves your site locally this should be the URL where you can see it
 
 [commands]
+# commands listed below are examples only, though if you use eleventy you can probably leave them 😆
 process = "eleventy --input=input --quiet" # command to process files
 publish = "rsync -az --del --quiet" # don't change this unless you know what you're doing
 test = "eleventy --input=input --quiet --serve" # command to serve site locally (if your SSG enables that)
