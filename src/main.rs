@@ -246,23 +246,17 @@ fn main() {
       .arg(Arg::with_name("ACTION")
           .help("Action to perform")
           .required(true)
-          .possible_values(&["config", "publish", "test", "write"])
+          .possible_values(&["config", "process", "publish", "test", "write"])
           )
       .get_matches();
 
   let action = matches.value_of("ACTION").unwrap();
-  if action == "config" {
-    println!("The action is CONFIG!");
-  } else if action == "process" {
-    println!("The action is PROCESS!");
-    // process file to prepare for publishing
-  } else if action == "publish" {
-    // publish from OUTPUT to REMOTE on SERVER_NAME
-    publish(&config)
-  } else if action == "test" {
-    // test run using eleventy --serve
-    test(&config).unwrap();
-  } else if action == "write" {
-    write(&config) 
+  match action {
+    "config" => println!("The action is CONFIG!"),
+    "process" => println!("The action is PROCESS!"),
+    "publish" => publish(&config),
+    "test" => test(&config).unwrap(),
+    "write" => write(&config),
+    &_ => () // this won't actually run but is needed by match
   }
 }
