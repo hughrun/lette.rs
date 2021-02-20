@@ -38,10 +38,14 @@ fn open_file(cmd: &str) {
 }
 
 fn setup() {
+
+  fn prep_to_open_file() {
     let os = env::consts::OS;
     match os {
       "macos" => open_file("open ~/.letters.toml"),
-      "linux" | "freebsd" | "openbsd" => open_file("xdg-open ~/.letters.toml")
+      "linux" | "freebsd" | "openbsd" => open_file("xdg-open ~/.letters.toml"),
+      &_ => () 
+    }
   }
 
   fn create_file() {
@@ -54,7 +58,7 @@ fn setup() {
         // Write out to new config file
         fs::write("~/.letters.toml", content).unwrap();
         // open file
-        open_file()
+        prep_to_open_file()
       }
         // Error handling.
         Err(error) => {
@@ -70,7 +74,7 @@ fn setup() {
 
   let _file = match file {
     Ok(_file) => create_file(),
-    Err(_error) => open_file()
+    Err(_error) => prep_to_open_file()
   };
 }
 
