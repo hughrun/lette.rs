@@ -3,9 +3,10 @@ use clap::{Arg, App};
 use colol::{color, close_color};
 use subprocess::{Exec, Popen, PopenConfig};
 use itertools::join;
+use std::env;
 use std::ffi::OsString;
-use std::io::{self, Read, Write};
 use std::fs;
+use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -32,9 +33,15 @@ struct Commands {
     test: String
 }
 
+fn open_file(cmd: &str) {
+  Exec::shell(cmd).join().unwrap();
+}
+
 fn setup() {
-  fn open_file() {
-    Exec::shell("open ~/.letters.toml").join().unwrap();
+    let os = env::consts::OS;
+    match os {
+      "macos" => open_file("open ~/.letters.toml"),
+      "linux" | "freebsd" | "openbsd" => open_file("xdg-open ~/.letters.toml")
   }
 
   fn create_file() {
