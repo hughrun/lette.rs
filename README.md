@@ -15,8 +15,14 @@ cargo build --release
 ```
 ### From executable
 
-1. download `letters` from [the latest release](https://github.com/hughrun/lette.rs/releases/latest)
-2. symlink to  your `PATH`: `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`
+1. download `letters` executable from [the latest release](https://github.com/hughrun/lette.rs/releases/latest)
+2. symlink to somewhere on your `PATH`: `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`
+
+## Dependencies
+
+`lette.rs` assumes you have `rsync` on your machine.
+
+You will also need an [API key from Unsplash](https://unsplash.com/documentation#creating-a-developer-account).
 
 ## Use
 
@@ -32,11 +38,9 @@ Run with `letters COMMAND`.
 
 ### setup
 
-This command opens your config file for viewing or editing. The config file is always saved at `~/letters.toml` - if this file does not exist a default file will be created. If it does exist, the existing file is opened.
+This command opens your config file for viewing or editing. The config file is always saved at `~/.letters.toml` - if this file does not exist a default file will be created. If it does exist, the existing file is opened.
 
 This is what drives `lette.rs`. Basically you put all your directory references and static site generator commands in the config file, and then you never have to remember them again.
-
-You will need an [API key from Unsplash](https://unsplash.com/documentation#creating-a-developer-account).
 
 ### write
 

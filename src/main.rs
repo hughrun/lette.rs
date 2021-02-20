@@ -1,3 +1,4 @@
+use chrono::{SecondsFormat, Utc};
 use clap::{Arg, App};
 use colol::{color, close_color};
 use subprocess::{Exec, Popen, PopenConfig};
@@ -13,6 +14,7 @@ use serde_derive::Deserialize;
 // deserialize TOML file
 #[derive(Deserialize)]
 struct Config {
+    author: String,
     input: String,
     output: String,
     workdir: String,
@@ -172,7 +174,7 @@ fn unsplash(config: &Config, topic: &str) -> (String, String) {
     (_photo, _description)
 }
 
-fn write(config: &Config) {
+fn write(config: &Config, image: bool) {
 
     colol::init();
     // Title
@@ -225,18 +227,29 @@ fn write(config: &Config) {
     let tags = join(t, ","); // put a comma between each tag
 
     // Image search term
-    color!(bold);
-    color!(green);
-    print!("Image search term: ");
-    color!(gray);
-    close_color!(bold);
-    io::stdout().flush().unwrap();
-    let mut topic = String::new();
-    io::stdin().read_line(&mut topic).unwrap();
-    color!(reset);
+    fn topic(image: bool) -> String {
+      if image {
+        color!(bold);
+        color!(green);
+        print!("Image search term: ");
+        color!(gray);
+        close_color!(bold);
+        io::stdout().flush().unwrap();
+        let mut topic = String::new();
+        io::stdin().read_line(&mut topic).unwrap();
+        color!(reset);
+        topic
+      } else {
+        String::new() // this is not used
+      }
+    }
 
     // unsplash search
-    let unsplash = unsplash(config, &topic);
+    let unsplash = unsplash(config, &topic(image));
+
+    // date
+    let now = Utc::now();
+    let date_string = now.to_rfc3339_opts(SecondsFormat::Secs, true);
 
     // write out file
     let mut contents = String::from("---\n");
@@ -245,19 +258,23 @@ fn write(config: &Config) {
     contents.push_str(&title);
     contents.push_str("subtitle: ");
     contents.push_str(&subtitle);
-    contents.push_str("author: Hugh Rundle");
+    contents.push_str("author: ");
+    contents.push_str(&config.author);
     contents.push_str("\ntags: ");
     contents.push_str("[");
     contents.push_str(&tags);
     contents.push_str("]");
     contents.push_str("\nsummary: ");
     contents.push_str(&summary);
-    contents.push_str("image: ");
-    contents.push_str("\n  photo: ");
-    contents.push_str(&unsplash.0);
-    contents.push_str("\n  description: ");
-    contents.push_str(&unsplash.1);
-    // TODO: add a DATE
+    contents.push_str("date: ");
+    contents.push_str(&date_string);
+    if image {
+      contents.push_str("\nimage: ");
+      contents.push_str("\n  photo: ");
+      contents.push_str(&unsplash.0);
+      contents.push_str("\n  description: ");
+      contents.push_str(&unsplash.1);
+    }
     contents.push_str("\n---\n");
 
     // create filename
@@ -283,7 +300,7 @@ fn main() {
   let config: Config = toml::from_str(&s).unwrap();
 
   let matches = App::new("lette.rs")
-      .version("1.0.0")
+      .version("1.1.0")
       .author("Hugh Rundle")
       .about("A CLI tool to make static site publishing less painful")
       .arg(Arg::with_name("ACTION")
@@ -291,15 +308,31 @@ fn main() {
           .required(true)
           .possible_values(&["setup", "process", "publish", "test", "write"])
           )
+      .arg(Arg::with_name("no-image")
+          .help("Don't get an image from Unsplash")
+          .long("no-image")
+          .required(false)
+          .takes_value(false)
+          )
       .get_matches();
 
-  let action = matches.value_of("ACTION").unwrap();
-  match action {
-    "setup" => setup(),
-    "process" => process(&config),
-    "publish" => publish(&config),
-    "test" => test(&config).unwrap(),
-    "write" => write(&config),
-    &_ => () // this won't actually run but is needed by match
+  
+    if matches.is_present("no-image") {
+      if matches.value_of("ACTION").unwrap() == "write" {
+        write(&config, false)
+      } else {
+        println!("--no-image can only be used with write")
+      }
+    } else {
+    let action = matches.value_of("ACTION").unwrap();
+    match action {
+      "setup" => setup(),
+      "process" => process(&config),
+      "publish" => publish(&config),
+      "test" => test(&config).unwrap(),
+      "write" => write(&config, true),
+      &_ => () // this won't actually run but is needed by match
+    }
   }
+
 }
