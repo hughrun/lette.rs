@@ -10,6 +10,9 @@ clap = "^2.33.0"
 colol = "^0.3"
 console = "^0.13.0"
 itertools = "^0.9.0"
+reqwest = { version = "^0.11.1", features = ["blocking"] }
+oauth = { version = "0.5", package = "oauth1-request" }
+rss = "^1.10.0"
 serde = "^1.0"
 serde_derive = "^1.0"
 shellexpand = "^2.0.0"
