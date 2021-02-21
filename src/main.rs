@@ -1,28 +1,21 @@
+use chrono::{SecondsFormat, Utc};
 use clap::{Arg, App};
 use colol::{color, close_color};
 use subprocess::{Exec, Popen, PopenConfig};
 use itertools::join;
+use reqwest;
+use rss::Channel;
+use std::env;
 use std::ffi::OsString;
-use std::io::{self, Read, Write};
 use std::fs;
+use std::io::{BufReader, self, Read, Write};
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 use serde_derive::Deserialize;
 
-// deserialize TOML file
-#[derive(Deserialize)]
-struct Config {
-    input: String,
-    output: String,
-    workdir: String,
-    remote_dir: String,
-    unsplash_client_id: String,
-    server_name: String,
-    test_url: String,
-    commands: Commands
-}
 
+// deserialize TOML file
 #[derive(Deserialize)]
 struct Commands {
     process: String,
@@ -30,9 +23,44 @@ struct Commands {
     test: String
 }
 
+#[derive(Deserialize)]
+struct Social {
+  mastodon_access_token: String,
+  mastodon_base_url: String,
+  twitter_consumer_key: String,
+  twitter_consumer_secret: String,
+  twitter_access_token: String,
+  twitter_access_secret: String
+  }
+
+#[derive(Deserialize)]
+struct Config {
+    author: String,
+    input: String,
+    output: String,
+    workdir: String,
+    remote_dir: String,
+    rss_file: String,
+    unsplash_client_id: String,
+    server_name: String,
+    test_url: String,
+    commands: Commands,
+    social: Social
+}
+
+fn open_file(cmd: &str) {
+  Exec::shell(cmd).join().unwrap();
+}
+
 fn setup() {
-  fn open_file() {
-    Exec::shell("open ~/.letters.toml").join().unwrap();
+
+  fn prep_to_open_file() {
+    let os = env::consts::OS;
+    match os {
+      "macos" => open_file("open ~/.letters.toml"),
+      "linux" | "freebsd" | "openbsd" => open_file("xdg-open ~/.letters.toml"),
+      &_ => () 
+    }
   }
 
   fn create_file() {
@@ -45,7 +73,7 @@ fn setup() {
         // Write out to new config file
         fs::write("~/.letters.toml", content).unwrap();
         // open file
-        open_file()
+        prep_to_open_file()
       }
         // Error handling.
         Err(error) => {
@@ -61,7 +89,7 @@ fn setup() {
 
   let _file = match file {
     Ok(_file) => create_file(),
-    Err(_error) => open_file()
+    Err(_error) => prep_to_open_file()
   };
 }
 
@@ -172,7 +200,7 @@ fn unsplash(config: &Config, topic: &str) -> (String, String) {
     (_photo, _description)
 }
 
-fn write(config: &Config) {
+fn write(config: &Config, no_image: bool) {
 
     colol::init();
     // Title
@@ -225,18 +253,29 @@ fn write(config: &Config) {
     let tags = join(t, ","); // put a comma between each tag
 
     // Image search term
-    color!(bold);
-    color!(green);
-    print!("Image search term: ");
-    color!(gray);
-    close_color!(bold);
-    io::stdout().flush().unwrap();
-    let mut topic = String::new();
-    io::stdin().read_line(&mut topic).unwrap();
-    color!(reset);
+    fn topic(no_image: bool) -> String {
+      if no_image {
+        String::new() // this is not used
+      } else {
+        color!(bold);
+        color!(green);
+        print!("Image search term: ");
+        color!(gray);
+        close_color!(bold);
+        io::stdout().flush().unwrap();
+        let mut topic = String::new();
+        io::stdin().read_line(&mut topic).unwrap();
+        color!(reset);
+        topic
+      }
+    }
 
     // unsplash search
-    let unsplash = unsplash(config, &topic);
+    let unsplash = unsplash(config, &topic(no_image));
+
+    // date
+    let now = Utc::now();
+    let date_string = now.to_rfc3339_opts(SecondsFormat::Secs, true);
 
     // write out file
     let mut contents = String::from("---\n");
@@ -245,19 +284,23 @@ fn write(config: &Config) {
     contents.push_str(&title);
     contents.push_str("subtitle: ");
     contents.push_str(&subtitle);
-    contents.push_str("author: Hugh Rundle");
+    contents.push_str("author: ");
+    contents.push_str(&config.author);
     contents.push_str("\ntags: ");
     contents.push_str("[");
     contents.push_str(&tags);
     contents.push_str("]");
     contents.push_str("\nsummary: ");
     contents.push_str(&summary);
-    contents.push_str("image: ");
-    contents.push_str("\n  photo: ");
-    contents.push_str(&unsplash.0);
-    contents.push_str("\n  description: ");
-    contents.push_str(&unsplash.1);
-    // TODO: add a DATE
+    contents.push_str("date: ");
+    contents.push_str(&date_string);
+    if !no_image {
+      contents.push_str("\nimage: ");
+      contents.push_str("\n  photo: ");
+      contents.push_str(&unsplash.0);
+      contents.push_str("\n  description: ");
+      contents.push_str(&unsplash.1);
+    }
     contents.push_str("\n---\n");
 
     // create filename
@@ -276,14 +319,102 @@ fn write(config: &Config) {
 
   }
 
+  fn get_social_post(config: &Config, msg: Option<&str>) -> String {
+    // Get the last item from the RSS file
+    // Normally this will be the post you just wrote
+    let rss = shellexpand::full(&config.rss_file).expect("Error reading rss").to_string();
+    let file = fs::File::open(rss).unwrap();
+    let channel = Channel::read_from(BufReader::new(file)).unwrap();
+    let last = &channel.items.last().unwrap();
+    let link = &last.link().unwrap();
+    let title = &last.title().unwrap();
+    let mut post = String::new();
+    // the text of the toot is the message if one was provided
+    // otherwise we fall back to the title of the post
+    let text = msg.unwrap_or(title);
+    post.push_str(text);
+    post.push_str("\n");
+    post.push_str(link);
+    // return the text of the post for use
+    post
+  }
+
+  fn toot(config: &Config, msg: Option<&str>) -> Result<reqwest::blocking::Response, reqwest::Error> {
+
+    let post = get_social_post(config, msg);
+
+    // mastodon API access is pretty straightforward
+    let mut token = String::from("Bearer ");
+    token.push_str(&config.social.mastodon_access_token);
+    let mut endpoint = String::from(&config.social.mastodon_base_url);
+    endpoint.push_str("/api/v1/statuses");
+
+    // Let's toot!
+    let params = [("status", post)];
+    let client = reqwest::blocking::Client::new();
+    client.post(&endpoint)
+    .form(&params)
+    .header(reqwest::header::AUTHORIZATION, token)
+    .send()
+  }
+
+  fn tweet(config: &Config, msg: Option<&str>) -> Result<reqwest::blocking::Response, reqwest::Error> {
+
+    let post = get_social_post(config, msg);
+
+    // prepare Twitter authorization info
+    let consumer_key = &config.social.twitter_consumer_key;
+    let consumer_secret = &config.social.twitter_consumer_secret;
+    let access_token = &config.social.twitter_access_token;
+    let token_secret = &config.social.twitter_access_secret;
+
+    // We need a custom struct for oauth apparently
+    #[derive(oauth::Request)]
+    struct CreateTweet<'a> {
+        status: &'a str,
+    }
+    // our actual message
+    let content = CreateTweet {
+      status: &post
+    };
+
+    // Twitter status posting endpoint
+    let endpoint = "https://api.twitter.com/1.1/statuses/update.json";
+
+    let token = oauth::Token::from_parts(consumer_key, consumer_secret, access_token, token_secret);
+    // Create the `Authorization` header.
+    let authorization_header = oauth::post(endpoint, &content, &token, oauth::HmacSha1);
+
+    // Let's tweet!
+    let params = [("status", &content.status)];
+    let client = reqwest::blocking::Client::new();
+    client.post(endpoint)
+    .form(&params)
+    .header(reqwest::header::AUTHORIZATION, authorization_header)
+    .send()
+  }
+
+fn check_status(res: reqwest::blocking::Response, platform: String) {
+  if res.status() == 200 {
+    if platform == "twitter" {
+      println!("🐦 tweeted!");
+    } else {
+      println!("📣 tooted!");
+    }
+    
+  } else {
+    println!("😭 {} returned error code {}", platform, res.status());
+  }
+}
+
 fn main() {
   // read config file
   let fp = shellexpand::full("~/.letters.toml").expect("Error reading config file");
-  let s = fs::read_to_string(&fp.into_owned()).unwrap();
-  let config: Config = toml::from_str(&s).unwrap();
+  let s = fs::read_to_string(&fp.into_owned()).expect("There is something wrong with your config file");
+  let config: Config = toml::from_str(&s).expect("There is something wrong with your config file");
 
   let matches = App::new("lette.rs")
-      .version("1.0.0")
+      .version("1.1.0")
       .author("Hugh Rundle")
       .about("A CLI tool to make static site publishing less painful")
       .arg(Arg::with_name("ACTION")
@@ -291,15 +422,65 @@ fn main() {
           .required(true)
           .possible_values(&["setup", "process", "publish", "test", "write"])
           )
+      .arg(Arg::with_name("no-image")
+          .help("Don't get an image from Unsplash")
+          .long("no-image")
+          .required(false)
+          .takes_value(false)
+          )
+      .arg(Arg::with_name("toot")
+          .help("Send toot")
+          .long("toot")
+          .short("t")
+          .required(false)
+          .takes_value(false)
+          )
+      .arg(Arg::with_name("tweet")
+          .help("Send tweet")
+          .long("tweet")
+          .short("w")
+          .required(false)
+          .takes_value(false)
+          )
+        .arg(Arg::with_name("message")
+          .help("Message to toot/tweet")
+          .long("message")
+          .short("m")
+          .required(false)
+          .takes_value(true)
+          )
       .get_matches();
-
-  let action = matches.value_of("ACTION").unwrap();
-  match action {
-    "setup" => setup(),
-    "process" => process(&config),
-    "publish" => publish(&config),
-    "test" => test(&config).unwrap(),
-    "write" => write(&config),
-    &_ => () // this won't actually run but is needed by match
+    // if toot or tweet
+    if matches.is_present("toot") | matches.is_present("tweet") {
+        if matches.value_of("ACTION").unwrap() == "publish" {
+          publish(&config);
+          if matches.is_present("toot") {
+            let res = toot(&config, matches.value_of("message"));
+            match res {
+              Ok(res) => check_status(res, String::from("mastodon")),
+              Err(err) => println!("😭 error tooting: {:#?}", err)
+            }
+          }
+          if matches.is_present("tweet") {
+            let res = tweet(&config, matches.value_of("message"));
+            match res {
+              Ok(res) => check_status(res, String::from("twitter")),
+              Err(err) => println!("😭 error tweeting: {:#?}", err)
+            }
+          }
+        } else {
+          println!("--toot and --tweet can only be used with publish")
+        }
+    } else {
+    let action = matches.value_of("ACTION").unwrap();
+    match action {
+      "setup" => setup(),
+      "process" => process(&config),
+      "publish" => publish(&config),
+      "test" => test(&config).unwrap(),
+      "write" => write(&config, matches.is_present("no-image")),
+      &_ => () // this won't actually run but is needed by match
+    }
   }
+
 }
