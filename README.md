@@ -22,7 +22,11 @@ cargo build --release
 
 `lette.rs` assumes you have `rsync` on your machine.
 
-You will also need an [API key from Unsplash](https://unsplash.com/documentation#creating-a-developer-account).
+Unless you use `--no-image` will also need an [API key from Unsplash](https://unsplash.com/documentation#creating-a-developer-account).
+
+If you use `--toot` you need [a Mastodon access token](https://shkspr.mobi/blog/2018/08/easy-guide-to-building-mastodon-bots/).
+
+If you use `--tweet` you need [Twitter OAuth 1.1 credentials](https://developer.twitter.com/en/docs/authentication/oauth-1-0a).
 
 ## Use
 
