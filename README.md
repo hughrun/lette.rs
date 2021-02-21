@@ -118,6 +118,14 @@ Requires these values in your settings:
 
 #### --message
 
+Use with `--toot` or `--tweet` as described above.
+
+You can also use the short form of these commands and combine them:
+
+```
+letters publish -tw -m 'Check out my latest blog post'
+```
+
 ## License
 
 `lette.rs` is licensed under GPL 3.0
