@@ -1,5 +1,5 @@
 use chrono::{SecondsFormat, Utc};
-use clap::{Arg, App};
+use clap::{Arg, App, ArgMatches};
 use colol::{color, close_color};
 use subprocess::{Exec, ExitStatus, Popen, PopenConfig};
 use itertools::join;
@@ -464,6 +464,28 @@ fn check_status(res: reqwest::blocking::Response, platform: String) {
   }
 }
 
+fn publish_to_social(matches: ArgMatches, config: Config) {
+
+  println!("Published! 🚀");
+
+  if matches.is_present("toot") {
+    let res = toot(&config, matches.value_of("message"));
+    match res {
+      Ok(res) => check_status(res, String::from("mastodon")),
+      Err(err) => println!("😭 error tooting: {:#?}", err)
+    }
+  }
+
+  if matches.is_present("tweet") {
+    let res = tweet(&config, matches.value_of("message"));
+    match res {
+      Ok(res) => check_status(res, String::from("twitter")),
+      Err(err) => println!("😭 error tweeting: {:#?}", err)
+    }
+  }
+
+}
+
 fn main() {
   // read config file
   let fp = shellexpand::full("~/.letters.toml").expect("Error reading config file");
@@ -471,7 +493,7 @@ fn main() {
   let config: Config = toml::from_str(&s).expect("There is something wrong with your config file");
 
   let matches = App::new("lette.rs")
-      .version("1.1.0")
+      .version("1.2.0")
       .author("Hugh Rundle")
       .about("A CLI tool to make static site publishing less painful")
       .arg(Arg::with_name("ACTION")
@@ -507,34 +529,19 @@ fn main() {
           .takes_value(true)
           )
       .get_matches();
-    // if toot or tweet
-    // BUG: this will publish even if toot or tweet fails, and more importantly, will toot or tweet even if publish fails.
-    if matches.is_present("toot") | matches.is_present("tweet") {
-        if matches.value_of("ACTION").unwrap() == "publish" {
-          match publish(&config) {
-            // TODO: throw to a function for social publishing only if x is true
-            Ok(x) => if x {println!("Published! 🚀")} else {eprintln!("Uh oh, the 'publish' command failed!\nCheck your config file is correct.")},
-            Err(err) => eprintln!("'publish' command failed!\nCheck your config file is correct.\nError: {}", err)
-          }
 
-          if matches.is_present("toot") {
-            let res = toot(&config, matches.value_of("message"));
-            match res {
-              Ok(res) => check_status(res, String::from("mastodon")),
-              Err(err) => println!("😭 error tooting: {:#?}", err)
-            }
-          }
-          if matches.is_present("tweet") {
-            let res = tweet(&config, matches.value_of("message"));
-            match res {
-              Ok(res) => check_status(res, String::from("twitter")),
-              Err(err) => println!("😭 error tweeting: {:#?}", err)
-            }
-          }
-        } else {
-          println!("--toot and --tweet can only be used with publish")
+  // if toot or tweet...
+  if matches.is_present("toot") | matches.is_present("tweet") {
+      if matches.value_of("ACTION").unwrap() == "publish" {
+        match publish(&config) {
+          // We do it like this so that the social post only gets published if the blog post is successfully published first
+          Ok(x) => if x { publish_to_social(matches, config)} else {eprintln!("Uh oh, the 'publish' command failed!\nCheck your config file is correct.")},
+          Err(err) => eprintln!("'publish' command failed!\nCheck your config file is correct.\nError: {}", err)
         }
-    } else {
+      } else {
+        println!("--toot and --tweet can only be used with publish")
+      }
+  } else {
     let action = matches.value_of("ACTION").unwrap();
     match action {
       "setup" => setup(),
@@ -558,5 +565,4 @@ fn main() {
       &_ => () // this won't actually run but is needed by match
     }
   }
-
 }
