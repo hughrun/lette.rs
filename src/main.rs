@@ -45,7 +45,9 @@ struct Config {
     server_name: String,
     test_url: String,
     commands: Commands,
-    social: Social
+    social: Social,
+    ssg_type: String,
+    default_layout: String
 }
 
 fn open_file(cmd: &str) {
@@ -248,7 +250,11 @@ fn write(config: &Config, no_image: bool) {
     if given_tags.trim().len() > 0 {
       vec = given_tags.split(",").collect(); // collect all tags if there are any
     }
-    vec.push("post"); // always add "post" tag
+    // TODO: ssg_type should default to "eleventy"
+    if &config.ssg_type == "eleventy" {
+      vec.push(&config.default_layout);
+    }
+
     let t = vec.iter().map(|t| quote(t)); // put quotation marks around each tag
     let tags = join(t, ","); // put a comma between each tag
 
@@ -279,7 +285,7 @@ fn write(config: &Config, no_image: bool) {
 
     // write out file
     let mut contents = String::from("---\n");
-    contents.push_str("layout: post"); // default to post layout
+    contents.push_str(&["layout: ", &config.default_layout].concat());
     contents.push_str("\ntitle: ");
     contents.push_str(&title);
     contents.push_str("subtitle: ");
@@ -294,12 +300,18 @@ fn write(config: &Config, no_image: bool) {
     contents.push_str(&summary);
     contents.push_str("date: ");
     contents.push_str(&date_string);
+    // this depends on ssg_type
     if !no_image {
-      contents.push_str("\nimage: ");
-      contents.push_str("\n  photo: ");
-      contents.push_str(&unsplash.0);
-      contents.push_str("\n  description: ");
-      contents.push_str(&unsplash.1);
+      if &config.ssg_type == "hugo" {
+        contents.push_str("\nimages: ");
+        contents.push_str(&["\n  - ", &unsplash.0].concat());
+      } else {
+        contents.push_str("\nimage: ");
+        contents.push_str("\n  photo: ");
+        contents.push_str(&unsplash.0);
+        contents.push_str("\n  description: ");
+        contents.push_str(&unsplash.1);
+      }
     }
     contents.push_str("\n---\n");
 
