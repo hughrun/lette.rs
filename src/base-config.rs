@@ -1,3 +1,5 @@
+ssg_type = "eleventy" # other options: "hugo"
+default_layout = "post" # use any string, this will be the value of "layout" in your frontmatter
 author = "" # your name as you want it to appear on your posts
 input = "" # the input directory for your site i.e. where your markdown files go
 output = "" # the directory for processed files for your site i.e. where your html files go. Do NOT include a trailing slash as lette.rs will add this for you

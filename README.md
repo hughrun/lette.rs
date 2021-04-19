@@ -16,7 +16,9 @@ cargo build --release
 ### From executable
 
 1. download `letters` executable from [the latest release](https://github.com/hughrun/lette.rs/releases/latest)
-2. symlink to somewhere on your `PATH`: `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`
+2. Add to PATH, either:
+   1. save the executable file to somewhere like `/usr/local/bin` or `/usr/bin`; or
+   2. save the executable file somewhere else and symlink to somewhere on your `PATH` e.g. `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`
 
 ## Dependencies
 
@@ -27,6 +29,10 @@ Unless you use `--no-image` will also need an [API key from Unsplash](https://un
 If you use `--toot` you need [a Mastodon access token](https://shkspr.mobi/blog/2018/08/easy-guide-to-building-mastodon-bots/).
 
 If you use `--tweet` you need [Twitter OAuth 1.1 credentials](https://developer.twitter.com/en/docs/authentication/oauth-1-0a).
+
+## Configuration
+
+TODO:
 
 ## Use
 

@@ -1,7 +1,7 @@
 use chrono::{SecondsFormat, Utc};
 use clap::{Arg, App};
 use colol::{color, close_color};
-use subprocess::{Exec, Popen, PopenConfig};
+use subprocess::{Exec, ExitStatus, Popen, PopenConfig};
 use itertools::join;
 use reqwest;
 use rss::Channel;
@@ -14,12 +14,14 @@ use std::process::Command;
 use std::time::Duration;
 use serde_derive::Deserialize;
 
-
 // deserialize TOML file
 #[derive(Deserialize)]
 struct Commands {
+    #[serde(default = "default_blank")]
     process: String,
+    #[serde(default = "default_publish")]
     publish: String,
+    #[serde(default = "default_blank")]
     test: String
 }
 
@@ -46,8 +48,28 @@ struct Config {
     test_url: String,
     commands: Commands,
     social: Social,
+    #[serde(default = "default_ssg")]
     ssg_type: String,
+    #[serde(default = "default_layout")]
     default_layout: String
+}
+
+// Derive default values
+
+fn default_blank() -> String {
+    String::from("")
+}
+
+fn default_layout() -> String {
+  String::from("post")
+}
+
+fn default_publish() -> String {
+  String::from("rsync -az --del --quiet")
+}
+
+fn default_ssg() -> String {
+  String::from("eleventy")
 }
 
 fn open_file(cmd: &str) {
@@ -77,9 +99,8 @@ fn setup() {
         // open file
         prep_to_open_file()
       }
-        // Error handling.
-        Err(error) => {
-          println!("Error opening file {}: {}", "src/base-config.rs", error);
+      Err(error) => {
+        println!("Error opening file {}: {}", "src/base-config.rs", error);
       },
     }
   }
@@ -95,27 +116,41 @@ fn setup() {
   };
 }
 
-fn process(config: &Config) {
+fn process(config: &Config)  -> subprocess::Result<bool> {
 
   let wd = shellexpand::full(&config.workdir)
     .expect("Error reading working directory")
     .to_string();
 
-  Exec::shell(&config.commands.process)
+  // TODO: logic needed here to deal with empty config value
+  // and set default command depending on ssg_type
+  let processed = Exec::shell(&config.commands.process)
     .cwd(wd)
-    .join()
-    .unwrap();
-
+    .join()?;
+  match processed {
+    ExitStatus::Exited(code) => if code == 0 {
+      Ok(true)
+    } else {
+      Ok(false)
+    },
+    _ => Ok(false)
+  }
 }
 
-fn publish(config: &Config) {
+fn publish(config: &Config) -> subprocess::Result<bool> {
   let remote = shellexpand::full(&config.remote_dir).expect("Error reading remote directory").to_string();
   let output = [&shellexpand::full(&config.output).expect("Error reading output directory").to_string(), "/"].concat();
   let concatenated = [&config.commands.publish, " ", &output, " ", &config.server_name, ":", &remote].concat();
-  Exec::shell(&concatenated)
-    .join()
-    .expect("Something went wrong trying to publish");
-  println!("Published! 🚀")
+  let publishing = Exec::shell(&concatenated)
+    .join()?;
+  match publishing {
+    ExitStatus::Exited(code) => if code == 0 {
+      Ok(true)
+    } else {
+      Ok(false)
+    },
+    _ => Ok(false)
+  }
 }
 
 fn quote(s: &str) -> String {
@@ -131,6 +166,9 @@ fn test(config: &Config) -> subprocess::Result<()>{
   let wd = shellexpand::full(&config.workdir).expect("Error reading working directory").to_string();
   // string needs to be an Option<OsString> for Popen Config
   let os_string: Option<OsString> = Some(OsString::from(&wd));
+  // TODO: logic needed here to deal with empty config value
+  // and set default command depending on ssg_type
+
   // use the original string, split on whitespace to create iterator
   let a = config.commands.test.split_whitespace();
   // collect into Vec
@@ -202,7 +240,7 @@ fn unsplash(config: &Config, topic: &str) -> (String, String) {
     (_photo, _description)
 }
 
-fn write(config: &Config, no_image: bool) {
+fn write(config: &Config, no_image: bool) -> subprocess::Result<bool> {
 
     colol::init();
     // Title
@@ -250,7 +288,7 @@ fn write(config: &Config, no_image: bool) {
     if given_tags.trim().len() > 0 {
       vec = given_tags.split(",").collect(); // collect all tags if there are any
     }
-    // TODO: ssg_type should default to "eleventy"
+
     if &config.ssg_type == "eleventy" {
       vec.push(&config.default_layout);
     }
@@ -327,8 +365,15 @@ fn write(config: &Config, no_image: bool) {
     fs::write(filepath, contents).expect("Error writing out file."); // write out file
     // open file
     let fp = Path::new(&directory).join(&hyphenated);
-    Exec::cmd("open").arg(fp).join().expect("Error opening file");
-
+    let exit_status = Exec::cmd("open").arg(fp).join()?;
+    match exit_status {
+      ExitStatus::Exited(code) => if code == 0 {
+        Ok(true)
+      } else {
+        Ok(false)
+      },
+      _ => Ok(false)
+    }
   }
 
   fn get_social_post(config: &Config, msg: Option<&str>) -> String {
@@ -463,9 +508,15 @@ fn main() {
           )
       .get_matches();
     // if toot or tweet
+    // BUG: this will publish even if toot or tweet fails, and more importantly, will toot or tweet even if publish fails.
     if matches.is_present("toot") | matches.is_present("tweet") {
         if matches.value_of("ACTION").unwrap() == "publish" {
-          publish(&config);
+          match publish(&config) {
+            // TODO: throw to a function for social publishing only if x is true
+            Ok(x) => if x {println!("Published! 🚀")} else {eprintln!("Uh oh, the 'publish' command failed!\nCheck your config file is correct.")},
+            Err(err) => eprintln!("'publish' command failed!\nCheck your config file is correct.\nError: {}", err)
+          }
+
           if matches.is_present("toot") {
             let res = toot(&config, matches.value_of("message"));
             match res {
@@ -487,10 +538,23 @@ fn main() {
     let action = matches.value_of("ACTION").unwrap();
     match action {
       "setup" => setup(),
-      "process" => process(&config),
-      "publish" => publish(&config),
-      "test" => test(&config).unwrap(),
-      "write" => write(&config, matches.is_present("no-image")),
+      "process" => match process(&config) {
+        Ok(x) => if x {()} else {eprintln!("Uh oh, the 'process' command failed!\nCheck your config file is correct.")},
+        Err(err) => eprintln!("'process' command failed!\nCheck your config file is correct.\nError: {}", err)
+      },
+      "publish" => match publish(&config) {
+        Ok(x) => if x {println!("Published! 🚀")} else {eprintln!("Uh oh, the 'publish' command failed!\nCheck your config file is correct.")},
+        Err(err) => eprintln!("'publish' command failed!\nCheck your config file is correct.\nError: {}", err)
+      },
+      "test" => match test(&config) {
+        Ok(_v) => (),
+        Err(err) => eprintln!("'test' command failed!\nCheck your config file is correct.\nError: {}", err)
+      },
+      "write" => match write(&config, matches.is_present("no-image")) {
+        Ok(x) => if x {()} else {eprintln!("Uh oh, the 'write' command failed!\nCheck your config file is correct.")},
+        Err(err) => eprintln!("'write' command failed!\nCheck your config file is correct.\nError: {}", err)
+      }
+      ,
       &_ => () // this won't actually run but is needed by match
     }
   }
