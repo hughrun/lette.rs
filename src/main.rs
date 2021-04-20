@@ -48,10 +48,12 @@ struct Config {
     output: String,
     workdir: String,
     remote_dir: String,
+    #[serde(default = "default_blank")]
     rss_file: String,
     #[serde(default = "default_blank")]
     unsplash_client_id: String,
     server_name: String,
+    #[serde(default = "default_blank")]
     test_url: String,
     commands: Commands,
     social: Social,
@@ -129,9 +131,22 @@ fn process(config: &Config)  -> subprocess::Result<bool> {
     .expect("Error reading working directory")
     .to_string();
 
-  // TODO: logic needed here to deal with empty config value
+  // deal with possible empty config value
   // and set default command depending on ssg_type
-  let processed = Exec::shell(&config.commands.process)
+
+  let cc = &config.commands.process;
+  let ssg = &config.ssg_type.as_str();
+  let commands;
+  if cc == &String::from("") {
+    commands = match ssg {
+      &"hugo" => "hugo --quiet",
+      _ => "eleventy --input=input --quiet"
+    }
+  } else {
+    commands = cc.as_str();
+  }
+
+  let processed = Exec::shell(commands)
     .cwd(wd)
     .join()?;
   match processed {
@@ -173,11 +188,36 @@ fn test(config: &Config) -> subprocess::Result<()>{
   let wd = shellexpand::full(&config.workdir).expect("Error reading working directory").to_string();
   // string needs to be an Option<OsString> for Popen Config
   let os_string: Option<OsString> = Some(OsString::from(&wd));
-  // TODO: logic needed here to deal with empty config value
-  // and set default command depending on ssg_type
+
+  // deal with possible empty config values
+  // and set defaults depending on ssg_type
+
+  let ct = &config.commands.test;
+  let test_url = &config.test_url;
+  let ssg = &config.ssg_type.as_str();
+
+  let commands;
+  if ct == &String::from("") {
+    commands = match ssg {
+      &"hugo" => "hugo server -w --quiet",
+      _ => "eleventy --input=input --quiet --serve"
+    }
+  } else {
+    commands = ct.as_str();
+  }
+
+  let url;
+  if test_url == &String::from("") {
+    url = match ssg {
+      &"hugo" => "http://localhost:1313",
+      _ => "http://localhost:8080"
+    }
+  } else {
+    url = test_url.as_str();
+  }
 
   // use the original string, split on whitespace to create iterator
-  let a = config.commands.test.split_whitespace();
+  let a = commands.split_whitespace();
   // collect into Vec
   let b: Vec<&str> = a.collect();
   let mut running_session = Popen::create(&b, PopenConfig { 
@@ -185,12 +225,12 @@ fn test(config: &Config) -> subprocess::Result<()>{
     detached: true,
     ..Default::default()
   })?;
-  println!("Loading site locally...");
+  println!("Loading site locally in your browser, this may take a few seconds...");
   // wait on process to give it time to load
   let _waiting = running_session.wait_timeout(Duration::new(5,0));
   // open the browser to the local url
   Command::new("open")
-    .arg(&config.test_url)
+    .arg(url)
     .output()
     .expect("Failed to open test_url");
 
@@ -387,6 +427,7 @@ fn write(config: &Config, no_image: bool) -> subprocess::Result<bool> {
     // Get the last item from the RSS file
     // Normally this will be the post you just wrote
     let rss = shellexpand::full(&config.rss_file).expect("Error reading rss").to_string();
+    // BUG: this panics if 'file' is incorrect or uses the default blank filepath
     let file = fs::File::open(rss).unwrap();
     let channel = Channel::read_from(BufReader::new(file)).unwrap();
     let last = &channel.items.last().unwrap();
