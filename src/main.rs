@@ -27,11 +27,17 @@ struct Commands {
 
 #[derive(Deserialize)]
 struct Social {
+  #[serde(default = "default_blank")]
   mastodon_access_token: String,
+  #[serde(default = "default_blank")]
   mastodon_base_url: String,
+  #[serde(default = "default_blank")]
   twitter_consumer_key: String,
+  #[serde(default = "default_blank")]
   twitter_consumer_secret: String,
+  #[serde(default = "default_blank")]
   twitter_access_token: String,
+  #[serde(default = "default_blank")]
   twitter_access_secret: String
   }
 
@@ -43,6 +49,7 @@ struct Config {
     workdir: String,
     remote_dir: String,
     rss_file: String,
+    #[serde(default = "default_blank")]
     unsplash_client_id: String,
     server_name: String,
     test_url: String,
@@ -486,11 +493,22 @@ fn publish_to_social(matches: ArgMatches, config: Config) {
 
 }
 
-fn main() {
-  // read config file
+fn get_config() -> std::result::Result<Config, toml::de::Error>{
+    // read config file and return result
   let fp = shellexpand::full("~/.letters.toml").expect("Error reading config file");
   let s = fs::read_to_string(&fp.into_owned()).expect("There is something wrong with your config file");
-  let config: Config = toml::from_str(&s).expect("There is something wrong with your config file");
+  let config: Config = toml::from_str(&s)?;
+  Ok(config)
+} 
+
+fn main() {
+
+  // read config file and provide helpful message if it is dodgy
+  let conf = get_config();
+  let config = match conf {
+    Ok(c) => c,
+    Err(e) => panic!("You have an error in your config file: {}", e)
+  };
 
   let matches = App::new("lette.rs")
       .version("1.2.0")
