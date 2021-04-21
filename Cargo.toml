@@ -1,8 +1,13 @@
 [package]
 name = "letters"
-version = "1.1.0"
+version = "1.2.0"
 authors = ["Hugh Rundle <hugh@hughrundle.net>"]
 edition = "2018"
+
+# reduce binary size with these optimisations
+[profile.release]
+lto = true
+codegen-units = 1
 
 [dependencies]
 chrono = "^0.4.19"

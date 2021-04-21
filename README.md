@@ -6,6 +6,8 @@ Built for MacOS, probably works on n*x. The idea of `lette.rs` is to enable you 
 
 This is basically the cleaner rustified version of [writenow](https://github.com/hughrun/writenow).
 
+Tested with Eleventy and Hugo, this is likely but not guaranteed to work with other static site generators. If you'd like functionality for your SSG added, please log an issue.
+
 ## Installation
 
 ### From source with cargo
@@ -16,7 +18,9 @@ cargo build --release
 ### From executable
 
 1. download `letters` executable from [the latest release](https://github.com/hughrun/lette.rs/releases/latest)
-2. symlink to somewhere on your `PATH`: `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`
+2. Add to PATH, either:
+   1. save the executable file to somewhere like `/usr/local/bin` or `/usr/bin`; or
+   2. save the executable file somewhere else and symlink to somewhere on your `PATH` e.g. `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`
 
 ## Dependencies
 
@@ -27,6 +31,52 @@ Unless you use `--no-image` will also need an [API key from Unsplash](https://un
 If you use `--toot` you need [a Mastodon access token](https://shkspr.mobi/blog/2018/08/easy-guide-to-building-mastodon-bots/).
 
 If you use `--tweet` you need [Twitter OAuth 1.1 credentials](https://developer.twitter.com/en/docs/authentication/oauth-1-0a).
+
+## Configuration
+
+To create or edit your configuration file, run `letters setup`.
+
+You can see the starter configuration, including explanations, at [./src/base-config.rs](./src/base-config.rs) (this gets processed into a `.toml` file).
+
+### Base configuration
+Base configuration options are as follows:
+
+| value                 | options             | default               | required     |
+| -----                 | -------             | -------               | ------------ |
+| `author`              | any text string     |                       | true         |
+| `input`               | any filepath        |                       | true         |
+| `output`              | any filepath        |                       | true         |
+| `workdir`             | any filepath        |                       | true         |
+| `remote_dir`          | any filepath        |                       | true         |
+| `rss_file`            | any filepath        |                       | true         |
+| `unsplash_client_id`  | any valid token     |                       | false        |
+| `server_name`         | name or IP address  |                       | true         |
+| `ssg_type`            | "eleventy", "hugo"  | "eleventy"            | false        |
+| `test_url`            | any filepath        | dependent on ssg_type | false        |
+| `default_layout`      | any filepath        | "post"                | false        |
+
+Optionally, you can configure options under the `commands` and `social` headings:
+
+### Commands configuration
+
+These values set the command that will run in a subprocess when you run the matching `letters` command. For example, the default `ssg_type` is "eleventy", so the default value for `process` is `"eleventy --input=input --quiet"`. If, for example, you use eleventy but your input directory is `/markdown`, you should set a `process` value of `"eleventy --input=markdown --quiet"`. On the other hand, if you set `ssg_type` to `"hugo"`, then the default for `process` will change to `"hugo --quiet"`, which is probably what you want. Again, however, you could override this default by setting your own `process` value if you want.
+
+| value                 | options               | default                   | required     |
+| -----                 | -------               | -------                   | ------------ |
+| `process`             | any command           | dependent on ssg_type     | false        |
+| `publish`             | any command           | "rsync -az --del --quiet" | false        |
+| `test`                | any command           | dependent on ssg_type     | false        |
+
+### Social configuration
+
+| value                    | options            | default             | required     |
+| -----                    | -------            | -------             | ------------ |
+| `twitter_consumer_key`     | any valid token  |                     | false        |
+| `twitter_consumer_secret`  | any valid token  |                     | false        |
+| `twitter_access_token`     | any valid token  |                     | false        |
+| `twitter_access_secret`    | any valid token  |                     | false        |
+| `mastodon_base_url`        | any valid URL    |                     | false        |
+| `mastodon_access_token`    | any valid token  |                     | false        |
 
 ## Use
 
@@ -56,7 +106,7 @@ It's always good to do a final check before publishing. Your SSG probably allows
 
 #### publish
 
-Hello world! Publishing from your local machine to a remote server is a gigantic PITA. With `lette.rs` you never have to remember how to `rsync` or whatever. Just `letters publish` and move on with your life.
+Hello world! Publishing from your local machine to a remote server is a gigantic PITA. With `lette.rs` you never have to remember how to `rsync` or whatever. Just `letters publish` and move on with your life. Don't forget to `letters process` first though, otherwise your masterpiece will languish on your local hard-drive.
 
 ### options
 
@@ -97,20 +147,20 @@ Used with `publish`, this will send a toot from your [Twitter](https://twitter.c
 
 If text is provided with `--message` that will be the message text, otherwise the title of the post is used.
 
-e.g. if your latest post is called "101 ways with broccoli" and the URL is "https://myblog.rocks/101-ways-with=broccoli":
+e.g. if your latest post is called "101 ways with broccoli" and the URL is "https://myblog.rocks/101-ways-with-broccoli":
 
 `letters publish --tweet` will tweet:
 
 ```
 101 ways with broccoli
-https://myblog.rocks/101-ways-with=broccoli
+https://myblog.rocks/101-ways-with-broccoli
 ```
 
 `letters publish --tweet --message 'I love broccoli` will tweet:
 
 ```
 I love broccoli
-https://myblog.rocks/101-ways-with=broccoli
+https://myblog.rocks/101-ways-with-broccoli
 ```
 
 Requires these values in your settings:
