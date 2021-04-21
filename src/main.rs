@@ -423,16 +423,18 @@ fn write(config: &Config, no_image: bool) -> subprocess::Result<bool> {
     }
   }
 
-  fn get_social_post(config: &Config, msg: Option<&str>) -> String {
+  fn get_social_post(config: &Config, msg: Option<&str>) -> Result<String, rss::Error> {
     // Get the last item from the RSS file
     // Normally this will be the post you just wrote
-    let rss = shellexpand::full(&config.rss_file).expect("Error reading rss").to_string();
-    // BUG: this panics if 'file' is incorrect or uses the default blank filepath
-    let file = fs::File::open(rss).unwrap();
-    let channel = Channel::read_from(BufReader::new(file)).unwrap();
-    let last = &channel.items.last().unwrap();
-    let link = &last.link().unwrap();
-    let title = &last.title().unwrap();
+    let rss = shellexpand::full(&config.rss_file).expect("Error reading rss filepath").to_string();
+    let file = fs::File::open(rss).expect("Cannot read RSS file: Either you did not provide a value for 'rss_file' in your config file, the filepath is invalid, or the file is corrupt.");
+    // Channel may also fail if the file isn't an RSS feed
+    // This will bubble the error up to tweet() or toot()
+    let channel = Channel::read_from(BufReader::new(file))?;
+    // This could also fail but we need link and title within this function so for now we risk a direct panic
+    let last = channel.items.last().expect("There are no items in your RSS feed! Did you remember to run 'letters process'?");
+    let link = last.link().unwrap();
+    let title = last.title().unwrap();
     let mut post = String::new();
     // the text of the toot is the message if one was provided
     // otherwise we fall back to the title of the post
@@ -441,12 +443,16 @@ fn write(config: &Config, no_image: bool) -> subprocess::Result<bool> {
     post.push_str("\n");
     post.push_str(link);
     // return the text of the post for use
-    post
+    Ok(post)
   }
 
   fn toot(config: &Config, msg: Option<&str>) -> Result<reqwest::blocking::Response, reqwest::Error> {
 
-    let post = get_social_post(config, msg);
+    // handle RSS errors here
+    let post = match get_social_post(config, msg) {
+      Ok(text) => text,
+      Err(e) => panic!("There was an error reading your RSS file: {}", e)
+    };
 
     // mastodon API access is pretty straightforward
     let mut token = String::from("Bearer ");
@@ -465,7 +471,11 @@ fn write(config: &Config, no_image: bool) -> subprocess::Result<bool> {
 
   fn tweet(config: &Config, msg: Option<&str>) -> Result<reqwest::blocking::Response, reqwest::Error> {
 
-    let post = get_social_post(config, msg);
+    // handle RSS errors here
+    let post = match get_social_post(config, msg) {
+      Ok(text) => text,
+      Err(e) => panic!("There was an error reading your RSS file: {}", e)
+    };
 
     // prepare Twitter authorization info
     let consumer_key = &config.social.twitter_consumer_key;
@@ -535,7 +545,7 @@ fn publish_to_social(matches: ArgMatches, config: Config) {
 }
 
 fn get_config() -> std::result::Result<Config, toml::de::Error>{
-    // read config file and return result
+  // read config file and return result
   let fp = shellexpand::full("~/.letters.toml").expect("Error reading config file");
   let s = fs::read_to_string(&fp.into_owned()).expect("There is something wrong with your config file");
   let config: Config = toml::from_str(&s)?;
