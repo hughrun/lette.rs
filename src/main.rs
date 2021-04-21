@@ -160,6 +160,7 @@ fn process(config: &Config)  -> subprocess::Result<bool> {
 }
 
 fn publish(config: &Config) -> subprocess::Result<bool> {
+
   let remote = shellexpand::full(&config.remote_dir).expect("Error reading remote directory").to_string();
   let output = [&shellexpand::full(&config.output).expect("Error reading output directory").to_string(), "/"].concat();
   let concatenated = [&config.commands.publish, " ", &output, " ", &config.server_name, ":", &remote].concat();
