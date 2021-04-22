@@ -2,31 +2,33 @@
 
 A CLI tool to make static site publishing less painful.
 
-Built for MacOS, probably works on n*x. The idea of `lette.rs` is to enable you to set-and-forget your static site setup and commands, and focus on writing great blog posts.
+The idea of `lette.rs` is to enable you to set-and-forget your static site setup and commands, and focus on writing great blog posts.
 
-This is basically the cleaner rustified version of [writenow](https://github.com/hughrun/writenow).
+This is basically the cleaner rustified version of [writenow](https://github.com/hughrun/writenow). Built for MacOS, probably works on n*x. Tested with Eleventy and Hugo, this is likely but not guaranteed to work with other static site generators. 
 
-Tested with Eleventy and Hugo, this is likely but not guaranteed to work with other static site generators. If you'd like functionality for your SSG added, please log an issue.
+If you'd like functionality for your SSG added, or have identified a specific problem with Linux or BSD sysetms, please log an issue.
 
 ## Installation
+
+### From executable
+
+1. download `letters` executable from [the latest release](https://github.com/hughrun/lette.rs/releases/latest);
+2. rename the file to simply `letters`;
+3. Add to PATH, either:
+   1. save the executable file to somewhere like `/usr/local/bin` or `/usr/bin`; or
+   2. save the executable file somewhere else and symlink to somewhere on your `PATH` e.g. `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`.
 
 ### From source with cargo
 
 ```shell
 cargo build --release
 ```
-### From executable
-
-1. download `letters` executable from [the latest release](https://github.com/hughrun/lette.rs/releases/latest)
-2. Add to PATH, either:
-   1. save the executable file to somewhere like `/usr/local/bin` or `/usr/bin`; or
-   2. save the executable file somewhere else and symlink to somewhere on your `PATH` e.g. `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`
 
 ## Dependencies
 
 `lette.rs` assumes you have `rsync` on your machine.
 
-Unless you use `--no-image` will also need an [API key from Unsplash](https://unsplash.com/documentation#creating-a-developer-account).
+Unless you use `--no-image` you will also need an [API key from Unsplash](https://unsplash.com/documentation#creating-a-developer-account).
 
 If you use `--toot` you need [a Mastodon access token](https://shkspr.mobi/blog/2018/08/easy-guide-to-building-mastodon-bots/).
 
@@ -41,42 +43,52 @@ You can see the starter configuration, including explanations, at [./src/base-co
 ### Base configuration
 Base configuration options are as follows:
 
-| value                 | options             | default               | required     |
-| -----                 | -------             | -------               | ------------ |
-| `author`              | any text string     |                       | true         |
-| `input`               | any filepath        |                       | true         |
-| `output`              | any filepath        |                       | true         |
-| `workdir`             | any filepath        |                       | true         |
-| `remote_dir`          | any filepath        |                       | true         |
-| `rss_file`            | any filepath        |                       | true         |
-| `unsplash_client_id`  | any valid token     |                       | false        |
-| `server_name`         | name or IP address  |                       | true         |
-| `ssg_type`            | "eleventy", "hugo"  | "eleventy"            | false        |
-| `test_url`            | any filepath        | dependent on ssg_type | false        |
-| `default_layout`      | any filepath        | "post"                | false        |
+| value                 | options             | default               | required  |
+| -----                 | -------             | -------               | ----------|
+| `author`              | any text string     |                       | yes       |
+| `input`               | any filepath        |                       | yes       |
+| `output`              | any filepath        |                       | yes       |
+| `workdir`             | any filepath        |                       | yes       |
+| `remote_dir`          | any filepath        |                       | yes       |
+| `rss_file`            | any filepath        |                       | yes       |
+| `unsplash_client_id`  | any valid token     |                       | no        |
+| `server_name`         | name or IP address  |                       | yes       |
+| `ssg_type`            | "eleventy", "hugo"  | "eleventy"            | no        |
+| `test_url`            | any URL             | dependent on ssg_type | no        |
+| `default_layout`      | any text string     | "post"                | no        |
 
-Optionally, you can configure options under the `commands` and `social` headings:
+### Filepaths
+
+Since every user manages their files differently, and SSGs allow for a lot of flexibility, `lette.rs` needs to be told which filepaths to use.
+
+* `input` is the directory where you would normally save your markdown files. e.g. in eleventy it might be `~/blog/input`, or in Hugo something like `~/hugo/blog/content/posts`.
+* `output` is the directory where your processed files are saved. In eleventy this is probably something like `~/blog/_input` or in Hugo something like `~/hugo/blog/public`.
+* `workdir` is the 'working directory' for your blog. i.e. the directory where you would normally run your SSG commands from. e.g. `~/blog` or `~/hugo`.
+* `remote_dir` is the directory where your blog lives on the _server_ &mdash; that is, where your files will be synced to from your local machine. This is likely to be something like `/var/www/blog` or `/srv/blog`.
+* `rss_file`is the location that your processed RSS file lives. This is used by the `--toot` and `--tweet` commands to find the title and URL of your latest post. It should be something like `~/blog/_input/rss/rss.xml` or `~/hugo/blog/public/rss/rss.xml` &mdash; note that you need to include the full file path, you can't rely on "cool URIs" because in this situation it's a filepath, not a web address.
+
+Optionally, you can also configure options under the `commands` and `social` headings:
 
 ### Commands configuration
 
-These values set the command that will run in a subprocess when you run the matching `letters` command. For example, the default `ssg_type` is "eleventy", so the default value for `process` is `"eleventy --input=input --quiet"`. If, for example, you use eleventy but your input directory is `/markdown`, you should set a `process` value of `"eleventy --input=markdown --quiet"`. On the other hand, if you set `ssg_type` to `"hugo"`, then the default for `process` will change to `"hugo --quiet"`, which is probably what you want. Again, however, you could override this default by setting your own `process` value if you want.
+These values set the command that will run in a subprocess when you run the matching `letters` command. For example, the default `ssg_type` is "eleventy", so the default value for `process` is `"eleventy --input=input --quiet"`. If, for example, you use eleventy but your input directory is `/markdown`, you should set a `process` value of `"eleventy --input=markdown --quiet"`. On the other hand, if you set `ssg_type` to `"hugo"`, then the default for `process` will change to `"hugo --quiet"`, which is probably what you want. You can override these defaults by setting your own `process` value if you want.
 
-| value                 | options               | default                   | required     |
-| -----                 | -------               | -------                   | ------------ |
-| `process`             | any command           | dependent on ssg_type     | false        |
-| `publish`             | any command           | "rsync -az --del --quiet" | false        |
-| `test`                | any command           | dependent on ssg_type     | false        |
+| value                 | options               | default                   | required  |
+| -----                 | -------               | -------                   | --------- |
+| `process`             | any command           | dependent on ssg_type     | no        |
+| `publish`             | any command           | "rsync -az --del --quiet" | no        |
+| `test`                | any command           | dependent on ssg_type     | no        |
 
 ### Social configuration
 
-| value                    | options            | default             | required     |
-| -----                    | -------            | -------             | ------------ |
-| `twitter_consumer_key`     | any valid token  |                     | false        |
-| `twitter_consumer_secret`  | any valid token  |                     | false        |
-| `twitter_access_token`     | any valid token  |                     | false        |
-| `twitter_access_secret`    | any valid token  |                     | false        |
-| `mastodon_base_url`        | any valid URL    |                     | false        |
-| `mastodon_access_token`    | any valid token  |                     | false        |
+| value                    | options          | default             | required  |
+| -----                    | -------          | -------             | ----------|
+| `twitter_consumer_key`   | any valid token  |                     | no        |
+| `twitter_consumer_secret`| any valid token  |                     | no        |
+| `twitter_access_token`   | any valid token  |                     | no        |
+| `twitter_access_secret`  | any valid token  |                     | no        |
+| `mastodon_base_url`      | any valid URL    |                     | no        |
+| `mastodon_access_token`  | any valid token  |                     | no        |
 
 ## Use
 
@@ -114,7 +126,7 @@ Hello world! Publishing from your local machine to a remote server is a gigantic
 
 Used with `write`, this bypasses the creation of image frontmatter. Use if you don't want images or don't want to use Unsplash.
 
-#### --toot
+#### --toot, -t
 
 Used with `publish`, this will send a toot from your [Mastodon](https://joinmastodon.org) account, with a link to your most recent post (i.e. the one you just published).
 
@@ -141,7 +153,7 @@ Requires these values in your settings:
 + `mastodon_base_url`
 + `rss_file`
 
-#### --tweet
+#### --tweet, -w
 
 Used with `publish`, this will send a toot from your [Twitter](https://twitter.com) account, with a link to your most recent post (i.e. the one you just published).
 
@@ -174,7 +186,7 @@ Requires these values in your settings:
 
 Use with `--toot` or `--tweet` as described above.
 
-You can also use the short form of these commands and combine them:
+You can also use the short form of these commands and/or combine them:
 
 ```
 letters publish -tw -m 'Check out my latest blog post'
