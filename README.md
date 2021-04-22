@@ -14,7 +14,7 @@ If you'd like functionality for your SSG added, or have identified a specific pr
 
 1. download `letters` executable from [the latest release](https://github.com/hughrun/lette.rs/releases/latest);
 2. rename the file to simply `letters`;
-3. Add to PATH, either:
+3. Add to PATH: either:
    1. save the executable file to somewhere like `/usr/local/bin` or `/usr/bin`; or
    2. save the executable file somewhere else and symlink to somewhere on your `PATH` e.g. `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`.
 
@@ -71,7 +71,7 @@ Optionally, you can also configure options under the `commands` and `social` hea
 
 ### Commands configuration
 
-These values set the command that will run in a subprocess when you run the matching `letters` command. For example, the default `ssg_type` is "eleventy", so the default value for `process` is `"eleventy --input=input --quiet"`. If, for example, you use eleventy but your input directory is `/markdown`, you should set a `process` value of `"eleventy --input=markdown --quiet"`. On the other hand, if you set `ssg_type` to `"hugo"`, then the default for `process` will change to `"hugo --quiet"`, which is probably what you want. You can override these defaults by setting your own `process` value if you want.
+These values set the command that will run in a subprocess when you run the matching `letters` command. For example, the default `ssg_type` is "eleventy", so the default value for `process` is `"eleventy --input=input --quiet"`. If, for example, you use eleventy but your input directory is `/markdown`, you should set a `process` value of `"eleventy --input=markdown --quiet"`. On the other hand, if you set `ssg_type` to `"hugo"`, then the default for `process` will change to `"hugo --quiet"`, which is probably what you want. You can override these defaults by setting your own `process` value if you prefer.
 
 | value                 | options               | default                   | required  |
 | -----                 | -------               | -------                   | --------- |
@@ -80,6 +80,8 @@ These values set the command that will run in a subprocess when you run the matc
 | `test`                | any command           | dependent on ssg_type     | no        |
 
 ### Social configuration
+
+This is where you put your API keys for posting to Twitter or Mastodon.
 
 | value                    | options          | default             | required  |
 | -----                    | -------          | -------             | ----------|
