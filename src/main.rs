@@ -8,7 +8,7 @@ use rss::Channel;
 use std::env;
 use std::ffi::OsString;
 use std::fs;
-use std::io::{BufReader, self, Read, Write};
+use std::io::{BufReader, self, Write};
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -96,33 +96,63 @@ fn setup() {
     }
   }
 
-  fn create_file() {
-    println!("Ok!");
-    match fs::File::open("src/base-config.rs") {
-      Ok(mut file) => {
-        let mut content = String::new();
-        // Read all the file content into a variable.
-        file.read_to_string(&mut content).unwrap();
-        // Write out to new config file
-        fs::write("~/.letters.toml", content).unwrap();
-        // open file
-        prep_to_open_file()
-      }
-      Err(error) => {
-        println!("Error opening file {}: {}", "src/base-config.rs", error);
-      },
-    }
+  fn create_file(path: &str) {
+
+    let mut empty_file = Vec::new();
+    empty_file.push("author = \"\" # your name");
+    empty_file.push("input = \"\" # the input directory for your site i.e. where your markdown files go");
+    empty_file.push("output = \"\" # the directory for processed files for your site i.e. where your html files go. Do NOT include a trailing slash as lette.rs will add this for you");
+    empty_file.push("workdir = \"\" # the base directory for calling your static site commands. Probably the root directory for eleventy, Hugo etc");
+    empty_file.push("remote_dir = \"\" # the directory to rsync files to, on your remote server.");
+    empty_file.push("rss_file = \"\" # filepath to the RSS file in your output directory");
+    empty_file.push("server_name = \"\" # this could be a name if you have set one in ~/.ssh/config, or otherwise an IP address");
+    empty_file.push("\n# All the values below are optional. Remove the '#' to uncomment them if you wish to override the default or set a value\n");
+    empty_file.push("# unsplash_client_id = \"\" # unsplash client ID string");
+    empty_file.push("# test_url = \"\" # if your SSG serves your site locally this should be the localhost URL where you can see it. eleventy and hugo will use their respective defaults if you don't provide a value. ");
+    empty_file.push("# ssg_type = \"\" # your static site generator. Options that will do something are \"hugo\" or \"eleventy\" but you can try something else and see if it works. Defaults to \"eleventy\"");
+    empty_file.push("# default_layout = \"\" # use any string, this will be the value of \"layout\" in your frontmatter. Defaults to \"post\"");
+    empty_file.push("\n");
+    empty_file.push("[commands]");
+    empty_file.push("# You can override the defaults by setting one of the values below, but if using Hugo or Eleventy you don't need to do so.");
+    empty_file.push("# process = \"\" # command to process files");
+    empty_file.push("# publish = \"\" # don't change this unless you know what you're doing");
+    empty_file.push("# test = \"\" # command to serve site locally (if your SSG enables that)");
+    empty_file.push("\n");
+    empty_file.push("[social]");
+    empty_file.push("# uncomment and set values below as needed");
+    empty_file.push("# mastodon_access_token = \"\" ");
+    empty_file.push("# mastodon_base_url = \"\" # e.g. https://example.com");
+    empty_file.push("# twitter_consumer_key = \"\"");
+    empty_file.push("# twitter_consumer_secret = \"\"");
+    empty_file.push("# twitter_access_token = \"\"");
+    empty_file.push("# twitter_access_secret = \"\"");
+    let conf = empty_file.join("\n").to_string()  ;
+    
+    match fs::write(path, conf) {
+      Ok(_) => prep_to_open_file(),
+      Err(e) => println!("Error opening file {}: {}", path, e)
+    };
   }
 
-  let file = fs::OpenOptions::new()
-              .write(true)
-              .create_new(true)
-              .open("~/.letters.toml");
+  let path = shellexpand::full("~/.letters.toml");
+  match path {
+    Ok(p) => choose_file(p.as_ref()),
+    Err(e) => eprintln!("There was an error reading the default config path:, {}", e)
+  }
 
-  let _file = match file {
-    Ok(_file) => create_file(),
+  fn choose_file(f: &str) {
+    let file = fs::OpenOptions::new()
+    .write(true)
+    .create_new(true)
+    .open(f);
+
+    match file {
+    // no error means the file did not exist
+    Ok(_) => create_file(f),
+    // error here means the file exists
     Err(_error) => prep_to_open_file()
-  };
+    };
+  }
 }
 
 fn process(config: &Config)  -> subprocess::Result<bool> {
@@ -563,7 +593,7 @@ fn main() {
   };
 
   let matches = App::new("lette.rs")
-      .version("1.2.0")
+      .version("1.2.1")
       .author("Hugh Rundle")
       .about("A CLI tool to make static site publishing less painful")
       .arg(Arg::with_name("ACTION")

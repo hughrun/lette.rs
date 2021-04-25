@@ -4,7 +4,7 @@ A CLI tool to make static site publishing less painful.
 
 The idea of `lette.rs` is to enable you to set-and-forget your static site setup and commands, and focus on writing great blog posts.
 
-This is basically the cleaner rustified version of [writenow](https://github.com/hughrun/writenow). Built for MacOS, probably works on n*x. Tested with Eleventy and Hugo, this is likely but not guaranteed to work with other static site generators. 
+This is basically the cleaner rustified version of [writenow](https://github.com/hughrun/writenow). Built for MacOS, works on n*x. Tested with Eleventy and Hugo, this is likely but not guaranteed to work with other static site generators. 
 
 If you'd like functionality for your SSG added, or have identified a specific problem with Linux or BSD sysetms, please log an issue.
 
@@ -15,8 +15,11 @@ If you'd like functionality for your SSG added, or have identified a specific pr
 1. download `letters` executable from [the latest release](https://github.com/hughrun/lette.rs/releases/latest);
 2. rename the file to simply `letters`;
 3. Add to PATH: either:
-   1. save the executable file to somewhere like `/usr/local/bin` or `/usr/bin`; or
-   2. save the executable file somewhere else and symlink to somewhere on your `PATH` e.g. `sudo ln -s /FULL/PATH/TO/letters /usr/local/bin`.
+   1. save the executable file to somewhere already on PATH like `/usr/local/bin`; or
+   2. save the executable file somewhere else and symlink to somewhere on your `PATH` e.g. `ln -s /Users/hugh/rustapps/letters /usr/local/bin/`; or
+   3. save the executable file somewhere and then add that directory to your PATH. e.g. :
+      1. `echo '/Users/hugh/rustapps:$PATH' >> ~/.bash_profile`
+      2. `source ~/.bash_profile`
 
 ### From source with cargo
 
@@ -37,8 +40,6 @@ If you use `--tweet` you need [Twitter OAuth 1.1 credentials](https://developer.
 ## Configuration
 
 To create or edit your configuration file, run `letters setup`.
-
-You can see the starter configuration, including explanations, at [./src/base-config.rs](./src/base-config.rs) (this gets processed into a `.toml` file).
 
 ### Base configuration
 Base configuration options are as follows:
