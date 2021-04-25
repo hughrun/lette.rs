@@ -14,7 +14,8 @@ If you'd like functionality for your SSG added, or have identified a specific pr
 
 1. download `letters` executable from [the latest release](https://github.com/hughrun/lette.rs/releases/latest);
 2. rename the file to simply `letters`;
-3. Add to PATH: either:
+3. make the file executable: `chmod +x /path/to/letters`
+4. Add to PATH: either:
    1. save the executable file to somewhere already on PATH like `/usr/local/bin`; or
    2. save the executable file somewhere else and symlink to somewhere on your `PATH` e.g. `ln -s /Users/hugh/rustapps/letters /usr/local/bin/`; or
    3. save the executable file somewhere and then add that directory to your PATH. e.g. :
