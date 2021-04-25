@@ -11,6 +11,7 @@ use std::fs;
 use std::io::{BufReader, self, Write};
 use std::path::Path;
 use std::process::Command;
+use std::thread::sleep;
 use std::time::Duration;
 use serde_derive::Deserialize;
 
@@ -575,23 +576,23 @@ fn publish_to_social(matches: ArgMatches, config: Config) {
 
 }
 
-fn get_config() -> std::result::Result<Config, toml::de::Error>{
+fn does_config_exist() -> std::result::Result<String, std::io::Error>{
   // read config file and return result
-  let fp = shellexpand::full("~/.letters.toml").expect("Error reading config file");
-  let s = fs::read_to_string(&fp.into_owned()).expect("There is something wrong with your config file");
-  let config: Config = toml::from_str(&s)?;
-  Ok(config)
-} 
+  let fp = shellexpand::full("~/.letters.toml").unwrap();
+  let s = fs::read_to_string(&fp.into_owned())?;
+  Ok(s)
+}
 
-fn main() {
+fn first_time_setup() {
+  println!("You need a config file to do anything!\nLet's set one up...");
+  // wait 3 seconds so the user reads the message
+  sleep(Duration::new(3,0));
+  setup()
+}
 
-  // read config file and provide helpful message if it is dodgy
-  let conf = get_config();
-  let config = match conf {
-    Ok(c) => c,
-    Err(e) => panic!("You have an error in your config file: {}", e)
-  };
+fn run(s: String) {
 
+  let config: Config = toml::from_str(&s).expect("Error reading Config file");
   let matches = App::new("lette.rs")
       .version("1.2.1")
       .author("Hugh Rundle")
@@ -665,4 +666,20 @@ fn main() {
       &_ => () // this won't actually run but is needed by match
     }
   }
+}
+
+fn main() {
+  // read config file
+  // if it exists, proceed to run()
+  // if it doesn't exist, run first_time_setup()
+  // if no permissions, give appropriate message
+  // if another error, panic
+  match does_config_exist() {
+    Ok(s) => run(s),
+    Err(e) => match e.kind() {
+      std::io::ErrorKind::NotFound => first_time_setup(),
+      std::io::ErrorKind::PermissionDenied => println!("You don't have permission to write to the home directory!!"),
+      _kind => panic!("Error reading config file: {}", e)
+    }
+  };
 }
