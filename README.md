@@ -27,6 +27,12 @@ If you'd like functionality for your SSG added, or have identified a specific pr
 cargo build --release
 ```
 
+## Upgrades
+
+If you are upgrading from a previous version, simply overwrite the old file with the new one.
+
+e.g. if you have v1.2.0 saved at `/Users/hugh/rustapps/letters` and want to install v1.2.1, download the v1.2.1 binary and copy it to `/Users/hugh/rustapps/letters`.
+
 ## Dependencies
 
 `lette.rs` assumes you have `rsync` on your machine.
