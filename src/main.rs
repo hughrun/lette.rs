@@ -75,7 +75,7 @@ fn default_layout() -> String {
 }
 
 fn default_publish() -> String {
-  String::from("rsync -az --del --quiet")
+  String::from("rsync -roptO --del --quiet")
 }
 
 fn default_ssg() -> String {
@@ -116,7 +116,7 @@ fn setup() {
     empty_file.push("[commands]");
     empty_file.push("# You can override the defaults by setting one of the values below, but if using Hugo or Eleventy you don't need to do so.");
     empty_file.push("# process = \"\" # command to process files");
-    empty_file.push("# publish = \"\" # don't change this unless you know what you're doing");
+    empty_file.push("# publish = \"\" # defaults to 'rsync -roptO --del --quiet'");
     empty_file.push("# test = \"\" # command to serve site locally (if your SSG enables that)");
     empty_file.push("\n");
     empty_file.push("[social]");
