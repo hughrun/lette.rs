@@ -10,6 +10,12 @@ If you'd like functionality for your SSG added, or have identified a specific pr
 
 ## Installation
 
+### With Homebrew
+
+```bash
+brew tap hughrun/lette.rs && brew install lette.rs
+```
+
 ### From executable
 
 1. download `letters` executable from [the latest release](https://github.com/hughrun/lette.rs/releases/latest);
