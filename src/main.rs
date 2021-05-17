@@ -75,7 +75,7 @@ fn default_layout() -> String {
 }
 
 fn default_publish() -> String {
-  String::from("rsync -roptO --del --quiet")
+  String::from("rsync -rtO --del --quiet")
 }
 
 fn default_ssg() -> String {
@@ -594,7 +594,7 @@ fn run(s: String) {
 
   let config: Config = toml::from_str(&s).expect("Error reading Config file");
   let matches = App::new("lette.rs")
-      .version("1.2.1")
+      .version("1.2.3")
       .author("Hugh Rundle")
       .about("A CLI tool to make static site publishing less painful")
       .arg(Arg::with_name("ACTION")
