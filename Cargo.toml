@@ -1,6 +1,6 @@
 [package]
 name = "letters"
-version = "1.2.3"
+version = "1.2.6"
 authors = ["Hugh Rundle <hugh@hughrundle.net>"]
 edition = "2018"
 
