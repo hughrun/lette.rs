@@ -93,7 +93,7 @@ fn setup() {
     match os {
       "macos" => open_file("open ~/.letters.toml"),
       "linux" | "freebsd" | "openbsd" => open_file("xdg-open ~/.letters.toml"),
-      &_ => () 
+      &_ => ()
     }
   }
 
@@ -128,7 +128,7 @@ fn setup() {
     empty_file.push("# twitter_access_token = \"\"");
     empty_file.push("# twitter_access_secret = \"\"");
     let conf = empty_file.join("\n").to_string()  ;
-    
+
     match fs::write(path, conf) {
       Ok(_) => prep_to_open_file(),
       Err(e) => println!("Error opening file {}: {}", path, e)
@@ -252,7 +252,7 @@ fn test(config: &Config) -> subprocess::Result<()>{
   let a = commands.split_whitespace();
   // collect into Vec
   let b: Vec<&str> = a.collect();
-  let mut running_session = Popen::create(&b, PopenConfig { 
+  let mut running_session = Popen::create(&b, PopenConfig {
     cwd: os_string,
     detached: true,
     ..Default::default()
@@ -292,7 +292,7 @@ fn unsplash(config: &Config, topic: &str) -> (String, String) {
     let resp = ureq::get(&query)
     .set("Authorization", &auth)
     .call();
-    
+
     // response
     let json = resp.into_json().expect("Error reading Unsplash API response.");
     let mut _photo = String::from("");
@@ -308,7 +308,7 @@ fn unsplash(config: &Config, topic: &str) -> (String, String) {
       let r = ureq::get(&q)
       .set("Authorization", &auth)
       .call();
-      
+
       // response
       let j = r.into_json().expect("Error reading Unsplash API response.");
       _description = j["description"].to_string();
@@ -548,7 +548,7 @@ fn check_status(res: reqwest::blocking::Response, platform: String) {
     } else {
       println!("📣 tooted!");
     }
-    
+
   } else {
     println!("😭 {} returned error code {}", platform, res.status());
   }
@@ -594,7 +594,7 @@ fn run(s: String) {
 
   let config: Config = toml::from_str(&s).expect("Error reading Config file");
   let matches = App::new("lette.rs")
-      .version("1.2.3")
+      .version("1.2.7")
       .author("Hugh Rundle")
       .about("A CLI tool to make static site publishing less painful")
       .arg(Arg::with_name("ACTION")
